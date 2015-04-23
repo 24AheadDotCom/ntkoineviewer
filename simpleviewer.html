@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+SUMMARY:
+This is a very simple viewer for a New Testament Koine Greek dictionary.
+
+INSTALL:
+1. Put this file in a directory with jquery.min.js (download from jquery.com)
+and dictionary.json (download from https://github.com/billmounce/dictionary).
+2. Load this file in a browser.
+
+ISSUES:
+Some browsers might not allow AJAX with local files. You'll need to use
+another browser, or use a web server.
+
+LICENSE:
+You may use this file for any reason and modify it in any way as long as
+you note somewhere in the project the original source: 24Ahead.com
+-->
+	<meta charset="utf-8">
+	<title>NT Koine Dictionary</title>
+	<style type="text/css">
+		.selected {
+			background-color:#DDD;
+		}
+		.lemma {
+			font-weight:bold;
+		}
+		.definition {
+			font-size:0.9em;
+		}
+		#subcattable, #itemtable {
+			margin-top:10px;
+		}
+		#content {
+			width:80%;
+			margin-left:10%;
+		}
+		#content table td {
+			padding:4px;
+		}
+	</style>
+</head>
+
+<body>
+	<section id="content">
+		<div id="messages">
+		</div>
+		<table id="cattable">
+			<tr>
+			</tr>
+		</table>
+
+		<table id="subcattable">
+			<tr>
+			</tr>
+		</table>
+
+		<table id="itemtable">
+			<tr>
+			</tr>
+		</table>
+	</section>
+
+	<script src="jquery.min.js"></script>
+
+	<script>
+		var lookup = {};
+
+		$.getJSON( 'dictionary.json', function( dictionary ) {
+			for ( var key in dictionary ) {
+				var item = dictionary[ key ];
+				var cat = key[ 0 ];
+				var subcat = key[ 1 ] || ' ';
+
+				if ( typeof lookup[ cat ] === 'undefined' ) {
+					lookup[ cat ] = {};
+				}
+				if ( typeof lookup[ cat ][ subcat ] === 'undefined' ) {
+					lookup[ cat ][ subcat ] = {};
+				}
+				lookup[ cat ][ subcat ][ key ] = item;
+			}
+
+			function makeItemTable( cat, subcat ) {
+				var table = $('tr','#itemtable');
+				table.empty();
+				var items = lookup[ cat ][ subcat ];
+				for ( var key in items ) {
+					var item = items[ key ];
+					var row = $('<tr/>');
+					row.append( $('<td/>').addClass( 'lemma' ).text( item.lemma ) );
+					row.append( $('<td/>').addClass( 'definition' ).text( item.definition ) );
+					table.append( row );
+				}
+			}
+
+			function makeSubCatTable( cat ) {
+				var row = $('tr','#subcattable');
+				row.empty();
+				var subcats = lookup[ cat ];
+				for ( var subcat in subcats ) {
+					var cell = $('<td/>');
+					cell.mouseenter({cat: cat, subcat: subcat}, function( event ) {
+						$('td','#subcattable').removeClass( 'selected' );
+						$(this).addClass( 'selected' );
+						makeItemTable( event.data.cat, event.data.subcat );
+					});
+					cell.text( cat + subcat );
+					row.append( cell );
+				}
+			}
+
+			var row = $('tr','#cattable');
+			for ( var cat in lookup ) {
+				var cell = $('<td/>');
+				cell.mouseenter({cat: cat}, function( event ) {
+					$('td','#cattable').removeClass( 'selected' );
+					$(this).addClass( 'selected' );
+					makeSubCatTable( event.data.cat );
+				});
+				cell.text( cat );
+				row.append( cell );
+			}
+		}).fail(function( jqxhr, textStatus, error ) {
+			$('#messages').text( 'Could not load dictionary.json. See the comments in this file. Message: ' + textStatus + " / " + error );
+		});
+	</script>
+
+</body>
+</html>
